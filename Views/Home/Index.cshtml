@@ -1,0 +1,216 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    @{
+        Layout = null;
+    }
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js "></script>
+    <script src="~/Scripts/bootstrap.min.js"></script>
+    <script src="http://maps.googleapis.com/maps/api/js"></script>
+    <script src="~/Scripts/jquery-3.3.1.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script async defer
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDxw8nJM3XLN02QeLCxGWHCNcIkKi7Ib-c&libraries=places&callback=initMap">
+    </script>
+    <style>
+    #description {
+    font-family: Roboto;
+    font-size: 15px;
+    font-weight: 300;
+    }
+
+    #infowindow-content .title {
+    font-weight: bold;
+    }
+
+    #infowindow-content {
+    display: none;
+    }
+
+    #map #infowindow-content {
+    display: inline;
+    }
+
+    .pac-card {
+    margin: 10px 10px 0 0;
+    border-radius: 2px 0 0 2px;
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    outline: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    background-color: #fff;
+    font-family: Roboto;
+    }
+
+    #pac-container {
+    padding-bottom: 12px;
+    margin-right: 12px;
+    }
+
+    .pac-controls {
+    display: inline-block;
+    padding: 5px 11px;
+    }
+
+    .pac-controls label {
+    font-family: Roboto;
+    font-size: 13px;
+    font-weight: 300;
+    }
+
+    #pac-input {
+    background-color: #fff;
+    font-family: Roboto;
+    font-size: 15px;
+    font-weight: 300;
+    margin-left: 12px;
+    padding: 0 11px 0 13px;
+    text-overflow: ellipsis;
+    width: 400px;
+    }
+
+    #pac-input:focus {
+    border-color: #4d90fe;
+    }
+
+    #title {
+    color: #fff;
+    background-color: #4d90fe;
+    font-size: 25px;
+    font-weight: 500;
+    padding: 6px 12px;
+    }
+    #target {
+    width: 345px;
+    }
+    </style>
+</head>
+<body>
+    <input onclick="sear" id="pac-input" class="controls" type="text" placeholder="Search Box">
+
+    <div id="map" style="height:1000px; width:1000px;"></div>
+
+    <script>
+        function initMap() {         
+            var a = { lat: 41.015137, lng: 28.979530 };
+            var map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 10,
+                center: a           
+            });
+
+            var trafficLayer = new google.maps.TrafficLayer();
+            trafficLayer.setMap(map);           
+        
+            $.getJSON("https://my-json-server.typicode.com/dijwarbozyel/locationdata/locations", function (data) {
+                console.log(data);
+                for (var i = 0; i < data.length; i++) {                 
+                    $.each(data[i], function (name, location) {
+                        var a = location[0];
+                        var b = location[1];
+                        var x = { lat: a, lng: b };                       
+                        var marker = new google.maps.Marker({
+                            title: name,
+                            position: x,
+                            map: map
+                        });
+                    });                       }
+            });
+              map.addListener("click", function (event) {
+                var latitude = event.latLng.lat();
+                var longitude = event.latLng.lng();   
+                var b= { lat: latitude, lng: longitude };
+                 var marker1 = new google.maps.Marker({
+                     position: b,          
+                     map: map      
+                  });                              
+                  $("#myModal").modal('show');                       
+                  google.maps.event.addListener(marker1, 'mouseover', function () {                     
+                      var aciklama = document.getElementById("aciklama").value;
+                      var tarih = document.getElementById("date").value;
+                      var sure = document.getElementById("sure").value;                
+                      var contentString = "Kaza Aciklama : " + aciklama + " Kaza Tarihi ve Saati :  " + tarih + " Tahmini Süre : " + sure;
+                      document.getElementById("myModal").reset();
+                      var infowindow = new google.maps.InfoWindow({
+                          content: contentString
+                      });
+                      marker1.addListener('mouseover', function () {
+                          infowindow.open(map, marker1);                    
+                      });
+                  });
+
+            });
+            var input = document.getElementById('pac-input');
+            var searchBox = new google.maps.places.SearchBox(input);
+            map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
+            map.addListener('bounds_changed', function () {
+                searchBox.setBounds(map.getBounds());
+            });
+            var markers = [];
+            searchBox.addListener('places_changed', function () {
+                var places = searchBox.getPlaces();
+                if (places.length == 0) {
+                    return;
+                }
+                markers.forEach(function (marker) {
+                    marker.setMap(null);
+                });
+                markers = [];
+                var bounds = new google.maps.LatLngBounds();
+                places.forEach(function (place) {
+                    if (!place.geometry) {
+                        console.log("Returned place contains no geometry");
+                        return;
+                    }
+                    var icon = {
+                        url: place.icon,
+                        size: new google.maps.Size(71, 71),
+                        origin: new google.maps.Point(0, 0),
+                        anchor: new google.maps.Point(17, 34),
+                        scaledSize: new google.maps.Size(25, 25)
+                    };
+                    markers.push(new google.maps.Marker({
+                        map: map,
+                        icon: icon,
+                        title: place.name,
+                        position: place.geometry.location
+                    }));
+
+                    if (place.geometry.viewport) {
+                        bounds.union(place.geometry.viewport);
+                    } else {
+                        bounds.extend(place.geometry.location);
+                    }
+                });
+                map.fitBounds(bounds);
+            });
+            google.maps.event.addDomListener(window, 'load', initialize);
+
+        }    
+      
+    </script>
+    
+
+    <form class="modal fade" id="myModal" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <p>Kaza bilgilerini giriniz.</p>
+                </div>
+                <div id="icerik">
+                    <input type="datetime-local" id="date" class="modal-title" placeholder="tarihi giriniz" />
+                    <input type="text"  id="aciklama"class="modal-body" placeholder="kaza Açıklaması" />
+                    <input type="time" id="sure" class="modal-body " placeholder="tahmini açılış saati" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button"  id="button1" class="btn btn-default" data-dismiss="modal">Kaydet</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+</body>
+</html>
